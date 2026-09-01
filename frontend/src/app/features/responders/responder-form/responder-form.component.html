@@ -10,7 +10,8 @@
   <form class="card" [formGroup]="form" (ngSubmit)="submit()">
     <div class="form-group">
       <label>Name *</label>
-      <input type="text" formControlName="name" placeholder="e.g. Unit 7" />
+      <input type="text" formControlName="name" />
+      <span class="field-hint">e.g. "Unit 7"</span>
       @if (form.controls.name.invalid && form.controls.name.touched) {
         <span class="field-error">Name is required.</span>
       }
@@ -38,11 +39,13 @@
     <div class="form-row">
       <div class="form-group">
         <label>Phone *</label>
-        <input type="text" formControlName="phone" placeholder="e.g. 555-0100" />
+        <input type="text" formControlName="phone" />
+        <span class="field-hint">e.g. "555-0100"</span>
       </div>
       <div class="form-group">
         <label>Current Location</label>
-        <input type="text" formControlName="currentLocation" placeholder="e.g. Station 3" />
+        <input type="text" formControlName="currentLocation" />
+        <span class="field-hint">e.g. "Station 3"</span>
       </div>
     </div>
 

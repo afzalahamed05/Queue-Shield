@@ -1,0 +1,8 @@
+<div class="tip-banner">
+  <div class="tip-inner" [class.fading]="fading()">
+    <span class="tip-kind" [class.safety]="tip().kind === 'safety'" [class.app]="tip().kind === 'app'">
+      {{ tip().kind === 'safety' ? 'Safety' : 'Using QueueShield' }}
+    </span>
+    <span class="tip-text">{{ tip().text }}</span>
+  </div>
+</div>

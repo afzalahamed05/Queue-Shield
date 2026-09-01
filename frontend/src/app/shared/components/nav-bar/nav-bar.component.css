@@ -1,6 +1,10 @@
 .nav {
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 2px solid var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .nav-inner {
@@ -9,26 +13,49 @@
   padding: 0 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 56px;
+  justify-content: center;
+  gap: 40px;
+  height: 64px;
 }
 
 .brand {
-  font-weight: 700;
-  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 800;
+  font-size: 1.08rem;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.brand-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 0 rgba(200, 16, 46, 0));
+  animation: brand-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes brand-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }
 
 nav {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 nav a {
   color: var(--color-text-muted);
   text-decoration: none;
-  padding: 8px 12px;
+  padding: 9px 14px;
   border-radius: var(--radius);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 nav a:hover {
@@ -39,4 +66,13 @@ nav a:hover {
 nav a.active {
   color: white;
   background: var(--color-primary);
+}
+
+@media (max-width: 720px) {
+  .nav-inner {
+    flex-direction: column;
+    height: auto;
+    padding: 14px 24px;
+    gap: 12px;
+  }
 }

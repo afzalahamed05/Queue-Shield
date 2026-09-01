@@ -69,6 +69,12 @@ spring:
               # kind's frontend NodePort mapping (k8s/kind-cluster.yaml) - the K8s deployment's
               # equivalent of 4200 above, kept separate since both stacks can run side by side.
               - "http://localhost:9180"
+            allowedOriginPatterns:
+              # Quick public tunnels (cloudflared/ngrok free tiers) for live demos - wildcarded
+              # since the exact subdomain is randomly generated fresh on every tunnel restart.
+              - "https://*.trycloudflare.com"
+              - "https://*.ngrok-free.dev"
+              - "https://*.ngrok-free.app"
             allowedMethods:
               - GET
               - POST

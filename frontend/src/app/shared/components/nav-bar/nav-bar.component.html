@@ -1,6 +1,12 @@
 <header class="nav">
   <div class="nav-inner">
-    <span class="brand">🛡️ QueueShield</span>
+    <span class="brand">
+      <svg class="brand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L4 5v6c0 5.2 3.4 9.9 8 11 4.6-1.1 8-5.8 8-11V5l-8-3z" fill="currentColor"/>
+        <path d="M9.5 12.2l1.8 1.8 3.4-3.6" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      QueueShield
+    </span>
     <nav>
       @for (link of links; track link.path) {
         <a [routerLink]="link.path" routerLinkActive="active">{{ link.label }}</a>

@@ -13,6 +13,14 @@ PostgreSQL · Angular 19 · Docker · Kubernetes (Helm) · Terraform · Ansible 
 **Run it:** `docker compose up -d` gets the whole stack running locally in one command — see
 [Local development setup](#local-development-setup).
 
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="QueueShield emergency operations dashboard" width="800">
+</p>
+<p align="center">
+  <img src="docs/screenshots/assignments.png" alt="Assignment dispatch view" width="390">
+  <img src="docs/screenshots/incident-form.png" alt="Incident report form" width="390">
+</p>
+
 <details>
 <summary><strong>Table of contents</strong></summary>
 
