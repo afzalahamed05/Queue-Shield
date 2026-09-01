@@ -1,0 +1,35 @@
+# Maven (backend/ and every services/* module)
+target/
+*.class
+
+# Node / Angular (frontend/)
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfplan
+terraform/crash.log
+
+# Local dev tooling, not project source
+.claude/
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

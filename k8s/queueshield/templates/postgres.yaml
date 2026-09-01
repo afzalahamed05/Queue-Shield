@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  labels: {{- include "queueshield.labels" . | nindent 4 }}
+data:
+  init-databases.sh: |
+    #!/bin/sh
+    set -e
+    {{- range .Values.postgres.databases }}
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -c "CREATE DATABASE {{ . }};"
+    {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: queueshield-postgres
+  labels: {{- include "queueshield.labels" . | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: {{ .Values.postgres.storageSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queueshield-postgres
+  labels: {{- include "queueshield.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # a rolling update would try to mount the ReadWriteOnce PVC twice
+  selector:
+    matchLabels: { app: queueshield-postgres }
+  template:
+    metadata:
+      labels: { app: queueshield-postgres }
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: queueshield
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: {{ .Values.dbSecretName }}, key: username } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.dbSecretName }}, key: password } }
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "queueshield"] }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "queueshield"] }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources: {{- .Values.resources.infra | toYaml | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: queueshield-postgres }
+        - name: init-script
+          configMap: { name: postgres-init, defaultMode: 0755 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: queueshield-postgres
+  labels: {{- include "queueshield.labels" . | nindent 4 }}
+spec:
+  selector: { app: queueshield-postgres }
+  ports:
+    - port: 5432
+      targetPort: 5432

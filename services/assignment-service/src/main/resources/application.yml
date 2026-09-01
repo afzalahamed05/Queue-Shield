@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: assignment-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://queueshield-postgres:5432/assignment_db}
+    username: ${DB_USERNAME:queueshield}
+    password: ${DB_PASSWORD:queueshield}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:false}
+    open-in-view: false
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >-
+          resourceRequestedEvent:com.queueshield.assignmentservice.event.ResourceRequestedEvent,
+          assignmentCompletedEvent:com.queueshield.assignmentservice.event.AssignmentCompletedEvent
+    consumer:
+      group-id: assignment-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.queueshield.assignmentservice.event
+        spring.json.type.mapping: >-
+          resourceAssignedEvent:com.queueshield.assignmentservice.event.ResourceAssignedEvent,
+          resourceRequestRejectedEvent:com.queueshield.assignmentservice.event.ResourceRequestRejectedEvent
+
+responder-service:
+  base-url: ${RESPONDER_SERVICE_URL:http://responder-service:8086}
+
+resource-service:
+  base-url: ${RESOURCE_SERVICE_URL:http://resource-service:8085}
+
+server:
+  port: ${SERVER_PORT:8088}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.queueshield: ${LOG_LEVEL:INFO}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

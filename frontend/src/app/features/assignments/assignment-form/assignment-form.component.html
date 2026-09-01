@@ -1,0 +1,70 @@
+<div class="page">
+  <div class="page-header">
+    <h1>New Assignment</h1>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loadingOptions()) {
+    <p class="muted">Loading incidents, responders, resources, shelters...</p>
+  } @else {
+    <form class="card" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-group">
+        <label>Incident *</label>
+        <select formControlName="incidentId">
+          <option [ngValue]="null">Select an incident...</option>
+          @for (i of incidents(); track i.id) {
+            <option [ngValue]="i.id">{{ i.title }} ({{ i.priorityTier }})</option>
+          }
+        </select>
+      </div>
+
+      <p class="muted">Assign at least one of the following:</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Responder</label>
+          <select formControlName="responderId">
+            <option [ngValue]="null">None</option>
+            @for (r of responders(); track r.id) {
+              <option [ngValue]="r.id">{{ r.name }} ({{ r.role }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Resource</label>
+          <select formControlName="resourceId">
+            <option [ngValue]="null">None</option>
+            @for (r of resources(); track r.id) {
+              <option [ngValue]="r.id">{{ r.name }} ({{ r.quantityAvailable }} available)</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Shelter</label>
+        <select formControlName="shelterId">
+          <option [ngValue]="null">None</option>
+          @for (s of shelters(); track s.id) {
+            <option [ngValue]="s.id">{{ s.name }} ({{ s.capacityAvailable }} beds available)</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea formControlName="notes" rows="3" placeholder="Optional dispatch notes"></textarea>
+      </div>
+
+      <div style="display:flex; gap: 8px;">
+        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+          {{ saving() ? 'Saving...' : 'Create Assignment' }}
+        </button>
+        <a class="btn" routerLink="/assignments">Cancel</a>
+      </div>
+    </form>
+  }
+</div>

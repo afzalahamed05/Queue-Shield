@@ -1,0 +1,96 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Incidents</h1>
+      <p>All reported emergency incidents, ranked by priority score</p>
+    </div>
+    <a class="btn btn-primary" routerLink="/incidents/new">+ Report Incident</a>
+  </div>
+
+  <div class="toolbar">
+    <div class="form-group">
+      <label>Status</label>
+      <select [(ngModel)]="status" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (s of statusOptions; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Severity</label>
+      <select [(ngModel)]="severity" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (s of severityOptions; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Priority Tier</label>
+      <select [(ngModel)]="priorityTier" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (t of priorityTierOptions; track t) {
+          <option [value]="t">{{ t }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <div class="card table-wrap">
+    @if (loading()) {
+      <p class="muted">Loading...</p>
+    } @else {
+      @if (page(); as p) {
+        @if (p.content.length === 0) {
+          <div class="empty-state">No incidents match these filters.</div>
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Location</th>
+                <th>Severity</th>
+                <th>Priority</th>
+                <th>Score</th>
+                <th>Status</th>
+                <th>People Affected</th>
+                <th>Reported</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (incident of p.content; track incident.id) {
+                <tr [routerLink]="['/incidents', incident.id]">
+                  <td>{{ incident.title }}</td>
+                  <td>{{ incident.location }}</td>
+                  <td><app-badge [text]="incident.severity" [colorClass]="severityColor(incident.severity)"></app-badge></td>
+                  <td>
+                    @if (incident.priorityTier) {
+                      <app-badge [text]="incident.priorityTier" [colorClass]="priorityTierColor(incident.priorityTier)"></app-badge>
+                    } @else {
+                      <span class="muted">Calculating…</span>
+                    }
+                  </td>
+                  <td>{{ incident.priorityScore ?? '—' }}</td>
+                  <td><app-badge [text]="incident.status" [colorClass]="incidentStatusColor(incident.status)"></app-badge></td>
+                  <td>{{ incident.peopleAffected }}</td>
+                  <td>{{ incident.reportedAt | date: 'short' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="toolbar" style="margin-top: 16px;">
+            <button class="btn" [disabled]="p.page === 0" (click)="goToPage(-1)">← Previous</button>
+            <span class="muted">Page {{ p.page + 1 }} of {{ p.totalPages || 1 }}</span>
+            <button class="btn" [disabled]="p.last" (click)="goToPage(1)">Next →</button>
+          </div>
+        }
+      }
+    }
+  </div>
+</div>

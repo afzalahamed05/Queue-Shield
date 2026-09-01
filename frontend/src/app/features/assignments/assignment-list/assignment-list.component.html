@@ -1,0 +1,79 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Assignments</h1>
+      <p>Dispatch of responders, resources, and shelters to incidents</p>
+    </div>
+    <a class="btn btn-primary" routerLink="/assignments/new">+ New Assignment</a>
+  </div>
+
+  <div class="toolbar">
+    <div class="form-group">
+      <label>Status</label>
+      <select [(ngModel)]="status" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (s of statusOptions; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <div class="card table-wrap">
+    @if (loading()) {
+      <p class="muted">Loading...</p>
+    } @else {
+      @if (page(); as p) {
+        @if (p.content.length === 0) {
+          <div class="empty-state">No assignments match these filters.</div>
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Incident</th>
+                <th>Responder</th>
+                <th>Resource</th>
+                <th>Shelter</th>
+                <th>Status</th>
+                <th>Resource Request</th>
+                <th>Assigned</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of p.content; track a.id) {
+                <tr>
+                  <td><a [routerLink]="['/incidents', a.incidentId]">Incident #{{ a.incidentId }}</a></td>
+                  <td>{{ a.responderId ? 'Responder #' + a.responderId : '—' }}</td>
+                  <td>{{ a.resourceId ? 'Resource #' + a.resourceId : '—' }}</td>
+                  <td>{{ a.shelterId ? 'Shelter #' + a.shelterId : '—' }}</td>
+                  <td><app-badge [text]="a.status" [colorClass]="assignmentStatusColor(a.status)"></app-badge></td>
+                  <td>{{ a.resourceRequestStatus === 'NOT_REQUESTED' ? '—' : a.resourceRequestStatus }}</td>
+                  <td>{{ a.assignedAt | date: 'short' }}</td>
+                  <td style="display:flex; gap:6px;">
+                    <select [ngModel]="a.status" (ngModelChange)="updateStatus(a, $event)">
+                      @for (s of statusOptions; track s) {
+                        <option [value]="s">{{ s }}</option>
+                      }
+                    </select>
+                    <button class="btn btn-danger" (click)="deleteAssignment(a.id)">Delete</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="toolbar" style="margin-top: 16px;">
+            <button class="btn" [disabled]="p.page === 0" (click)="goToPage(-1)">← Previous</button>
+            <span class="muted">Page {{ p.page + 1 }} of {{ p.totalPages || 1 }}</span>
+            <button class="btn" [disabled]="p.last" (click)="goToPage(1)">Next →</button>
+          </div>
+        }
+      }
+    }
+  </div>
+</div>

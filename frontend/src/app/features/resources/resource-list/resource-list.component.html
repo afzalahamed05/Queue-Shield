@@ -1,0 +1,77 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Resources</h1>
+      <p>Emergency resource inventory</p>
+    </div>
+    <a class="btn btn-primary" routerLink="/resources/new">+ Add Resource</a>
+  </div>
+
+  <div class="toolbar">
+    <div class="form-group">
+      <label>Type</label>
+      <select [(ngModel)]="type" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (t of typeOptions; track t) {
+          <option [value]="t">{{ t }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select [(ngModel)]="status" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (s of statusOptions; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <div class="card table-wrap">
+    @if (loading()) {
+      <p class="muted">Loading...</p>
+    } @else {
+      @if (page(); as p) {
+        @if (p.content.length === 0) {
+          <div class="empty-state">No resources match these filters.</div>
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Available / Total</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of p.content; track r.id) {
+                <tr [routerLink]="['/resources', r.id, 'edit']">
+                  <td>{{ r.name }}</td>
+                  <td>{{ r.type }}</td>
+                  <td>{{ r.quantityAvailable }} / {{ r.quantityTotal }}</td>
+                  <td>{{ r.location }}</td>
+                  <td><app-badge [text]="r.status" [colorClass]="resourceStatusColor(r.status)"></app-badge></td>
+                  <td><button class="btn btn-danger" (click)="deleteResource(r.id, $event)">Delete</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="toolbar" style="margin-top: 16px;">
+            <button class="btn" [disabled]="p.page === 0" (click)="goToPage(-1)">← Previous</button>
+            <span class="muted">Page {{ p.page + 1 }} of {{ p.totalPages || 1 }}</span>
+            <button class="btn" [disabled]="p.last" (click)="goToPage(1)">Next →</button>
+          </div>
+        }
+      }
+    }
+  </div>
+</div>

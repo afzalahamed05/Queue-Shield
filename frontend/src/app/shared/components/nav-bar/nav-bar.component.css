@@ -1,0 +1,42 @@
+.nav {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+nav a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+}
+
+nav a:hover {
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}
+
+nav a.active {
+  color: white;
+  background: var(--color-primary);
+}

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: queueshield
+description: >-
+  QueueShield — Smart Emergency Resource Coordination Platform. Packages the full
+  event-driven microservice stack (8 Spring Boot services + gateway, Kafka, Redis,
+  Postgres, and the Angular frontend) as a single Helm release.
+type: application
+version: 0.1.0
+appVersion: "0.2.0"

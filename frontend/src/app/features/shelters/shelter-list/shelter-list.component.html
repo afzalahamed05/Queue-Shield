@@ -1,0 +1,68 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Shelters</h1>
+      <p>Emergency shelters and capacity tracking</p>
+    </div>
+    <a class="btn btn-primary" routerLink="/shelters/new">+ Add Shelter</a>
+  </div>
+
+  <div class="toolbar">
+    <div class="form-group">
+      <label>Status</label>
+      <select [(ngModel)]="status" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (s of statusOptions; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <div class="card table-wrap">
+    @if (loading()) {
+      <p class="muted">Loading...</p>
+    } @else {
+      @if (page(); as p) {
+        @if (p.content.length === 0) {
+          <div class="empty-state">No shelters match these filters.</div>
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Capacity Available / Total</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of p.content; track s.id) {
+                <tr [routerLink]="['/shelters', s.id, 'edit']">
+                  <td>{{ s.name }}</td>
+                  <td>{{ s.address }}</td>
+                  <td>{{ s.capacityAvailable }} / {{ s.capacityTotal }}</td>
+                  <td>{{ s.contactPhone }}</td>
+                  <td><app-badge [text]="s.status" [colorClass]="shelterStatusColor(s.status)"></app-badge></td>
+                  <td><button class="btn btn-danger" (click)="deleteShelter(s.id, $event)">Delete</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="toolbar" style="margin-top: 16px;">
+            <button class="btn" [disabled]="p.page === 0" (click)="goToPage(-1)">← Previous</button>
+            <span class="muted">Page {{ p.page + 1 }} of {{ p.totalPages || 1 }}</span>
+            <button class="btn" [disabled]="p.last" (click)="goToPage(1)">Next →</button>
+          </div>
+        }
+      }
+    }
+  </div>
+</div>

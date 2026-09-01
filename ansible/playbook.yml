@@ -1,0 +1,49 @@
+---
+# Bootstraps the one piece Terraform/Helm cannot do themselves: getting the locally-built
+# QueueShield images into kind's own containerd. kind doesn't pull from Docker Hub for images
+# that only exist on this machine's Docker Desktop - they have to be explicitly loaded per node.
+# Runs after Terraform has created the kind cluster, before the Helm release is installed.
+- name: Bootstrap QueueShield images into the kind cluster
+  hosts: local
+  gather_facts: false
+
+  vars:
+    cluster_name: queueshield
+    compose_dir: /workspace
+    images:
+      - queueshield-incident-service:latest
+      - queueshield-priority-service:latest
+      - queueshield-resource-service:latest
+      - queueshield-responder-service:latest
+      - queueshield-shelter-service:latest
+      - queueshield-assignment-service:latest
+      - queueshield-notification-service:latest
+      - queueshield-gateway:latest
+      - queueshield-frontend:latest
+
+  tasks:
+    - name: Verify the Docker socket is reachable
+      ansible.builtin.command: docker info
+      register: docker_info
+      changed_when: false
+
+    - name: Verify the kind cluster exists
+      ansible.builtin.command: kind get clusters
+      register: kind_clusters
+      changed_when: false
+      failed_when: cluster_name not in kind_clusters.stdout_lines
+
+    - name: Build every service image from the current source tree
+      ansible.builtin.command: docker compose build --parallel
+      args:
+        chdir: "{{ compose_dir }}"
+      changed_when: true
+
+    - name: Load each image into the kind cluster's node
+      ansible.builtin.command: kind load docker-image {{ item }} --name {{ cluster_name }}
+      loop: "{{ images }}"
+      changed_when: true
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: "Loaded {{ images | length }} images into kind cluster '{{ cluster_name }}'"

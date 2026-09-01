@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.queueshield</groupId>
+    <artifactId>queueshield-services</artifactId>
+    <version>0.2.0</version>
+    <packaging>pom</packaging>
+    <name>queueshield-services</name>
+    <description>
+        Reactor parent for QueueShield's Phase 2 microservices. Each module is an independently
+        deployable Spring Boot app with its own database - this POM exists purely to share build
+        configuration (Lombok/JDK setup, dependency versions) and give a single "build everything"
+        command, not to imply the services are coupled at runtime.
+    </description>
+
+    <modules>
+        <module>incident-service</module>
+        <module>priority-service</module>
+        <module>resource-service</module>
+        <module>responder-service</module>
+        <module>shelter-service</module>
+        <module>assignment-service</module>
+        <module>notification-service</module>
+        <module>gateway</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <!-- See backend/pom.xml for why this is pinned above Spring Boot's managed version:
+             this dev machine runs JDK 25, whose annotation-processor support Lombok only gained
+             in 1.18.40. -->
+        <lombok.version>1.18.42</lombok.version>
+    </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <!-- Declared here (not just pluginManagement) so every module's `mvn package` actually
+                 repackages into an executable fat jar - needed now that Docker images run
+                 `java -jar app.jar` instead of `mvn spring-boot:run`. -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

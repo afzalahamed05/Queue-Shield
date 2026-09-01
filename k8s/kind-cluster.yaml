@@ -1,0 +1,14 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: queueshield
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Deliberately different host ports from the Docker Compose stack (8090/4200) so both
+      # stacks can run side by side without a port clash.
+      - containerPort: 30090
+        hostPort: 9190
+        protocol: TCP
+      - containerPort: 30080
+        hostPort: 9180
+        protocol: TCP

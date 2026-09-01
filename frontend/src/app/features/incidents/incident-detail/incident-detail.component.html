@@ -1,0 +1,119 @@
+<div class="page">
+  @if (loading()) {
+    <p class="muted">Loading...</p>
+  }
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (incident(); as inc) {
+    <div class="page-header">
+      <div>
+        <h1>{{ inc.title }}</h1>
+        <p>{{ inc.location }}</p>
+      </div>
+      <div style="display:flex; gap: 8px;">
+        <a class="btn" [routerLink]="['/incidents', inc.id, 'edit']">Edit</a>
+        <button class="btn" (click)="recalculatePriority()">Recalculate Priority</button>
+        <a class="btn btn-primary" [routerLink]="['/assignments/new']" [queryParams]="{ incidentId: inc.id }">+ Assign</a>
+        <button class="btn btn-danger" (click)="deleteIncident()">Delete</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-4">
+      <div class="card">
+        <div class="stat-label">Severity</div>
+        <app-badge [text]="inc.severity" [colorClass]="severityColor(inc.severity)"></app-badge>
+      </div>
+      <div class="card">
+        <div class="stat-label">Status</div>
+        <app-badge [text]="inc.status" [colorClass]="incidentStatusColor(inc.status)"></app-badge>
+      </div>
+      <div class="card">
+        <div class="stat-label">Priority Tier</div>
+        @if (inc.priorityTier) {
+          <app-badge [text]="inc.priorityTier" [colorClass]="priorityTierColor(inc.priorityTier)"></app-badge>
+        } @else {
+          <span class="muted">Calculating…</span>
+        }
+      </div>
+      <div class="card">
+        <div class="stat-value">{{ inc.priorityScore ?? '—' }}</div>
+        <div class="stat-label">Priority Score (0-100)</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Details</h2>
+    <div class="card">
+      <p>{{ inc.description || 'No description provided.' }}</p>
+      <div class="grid grid-cols-4">
+        <div>
+          <div class="stat-label">People Affected</div>
+          <div>{{ inc.peopleAffected }}</div>
+        </div>
+        <div>
+          <div class="stat-label">Vulnerable Population</div>
+          <div>{{ inc.vulnerablePopulationCount }}</div>
+        </div>
+        <div>
+          <div class="stat-label">Reported</div>
+          <div>{{ inc.reportedAt | date: 'medium' }}</div>
+        </div>
+        <div>
+          <div class="stat-label">Last Updated</div>
+          <div>{{ inc.updatedAt | date: 'medium' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Priority Score Breakdown</h2>
+    <div class="card">
+      <p class="muted" style="margin-top:0;">Computed by priority-service (a separate service from the incident record above) — deterministic weighted formula: severity 40%, people affected 20%, vulnerability 20%, urgency 10%, resource scarcity 10%. Each component below is on a 0-100 scale before weighting.</p>
+      @if (priority(); as p) {
+        <table>
+          <tbody>
+            <tr><td>Severity</td><td>{{ p.severityComponent }}</td></tr>
+            <tr><td>People Affected</td><td>{{ p.peopleAffectedComponent }}</td></tr>
+            <tr><td>Vulnerability</td><td>{{ p.vulnerabilityComponent }}</td></tr>
+            <tr><td>Urgency (time elapsed)</td><td>{{ p.urgencyComponent }}</td></tr>
+            <tr><td>Resource Scarcity</td><td>{{ p.resourceScarcityComponent }}</td></tr>
+          </tbody>
+        </table>
+      } @else if (priorityPending()) {
+        <p class="muted">priority-service hasn't processed this incident yet — this normally takes under a second.</p>
+      }
+    </div>
+
+    <h2 class="section-title">Assignments</h2>
+    <div class="card table-wrap">
+      @if (assignments().length === 0) {
+        <div class="empty-state">No responders, resources, or shelters assigned yet.</div>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Responder</th>
+              <th>Resource</th>
+              <th>Shelter</th>
+              <th>Status</th>
+              <th>Resource Request</th>
+              <th>Assigned</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of assignments(); track a.id) {
+              <tr>
+                <td>{{ a.responderId ? 'Responder #' + a.responderId : '—' }}</td>
+                <td>{{ a.resourceId ? 'Resource #' + a.resourceId : '—' }}</td>
+                <td>{{ a.shelterId ? 'Shelter #' + a.shelterId : '—' }}</td>
+                <td><app-badge [text]="a.status" [colorClass]="assignmentStatusColor(a.status)"></app-badge></td>
+                <td>{{ a.resourceRequestStatus === 'NOT_REQUESTED' ? '—' : a.resourceRequestStatus }}</td>
+                <td>{{ a.assignedAt | date: 'short' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+</div>

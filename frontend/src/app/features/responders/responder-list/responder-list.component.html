@@ -1,0 +1,77 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Responders</h1>
+      <p>Emergency responders and response teams</p>
+    </div>
+    <a class="btn btn-primary" routerLink="/responders/new">+ Add Responder</a>
+  </div>
+
+  <div class="toolbar">
+    <div class="form-group">
+      <label>Role</label>
+      <select [(ngModel)]="role" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (r of roleOptions; track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select [(ngModel)]="status" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        @for (s of statusOptions; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <div class="card table-wrap">
+    @if (loading()) {
+      <p class="muted">Loading...</p>
+    } @else {
+      @if (page(); as p) {
+        @if (p.content.length === 0) {
+          <div class="empty-state">No responders match these filters.</div>
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of p.content; track r.id) {
+                <tr [routerLink]="['/responders', r.id, 'edit']">
+                  <td>{{ r.name }}</td>
+                  <td>{{ r.role }}</td>
+                  <td>{{ r.phone }}</td>
+                  <td>{{ r.currentLocation || '—' }}</td>
+                  <td><app-badge [text]="r.status" [colorClass]="responderStatusColor(r.status)"></app-badge></td>
+                  <td><button class="btn btn-danger" (click)="deleteResponder(r.id, $event)">Delete</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="toolbar" style="margin-top: 16px;">
+            <button class="btn" [disabled]="p.page === 0" (click)="goToPage(-1)">← Previous</button>
+            <span class="muted">Page {{ p.page + 1 }} of {{ p.totalPages || 1 }}</span>
+            <button class="btn" [disabled]="p.last" (click)="goToPage(1)">Next →</button>
+          </div>
+        }
+      }
+    }
+  </div>
+</div>

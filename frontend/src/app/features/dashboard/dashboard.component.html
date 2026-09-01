@@ -1,0 +1,69 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Emergency Operations Dashboard</h1>
+      <p>Live snapshot of incidents, responders, resources, and shelters</p>
+    </div>
+    <a class="btn btn-primary" routerLink="/incidents/new">+ Report Incident</a>
+  </div>
+
+  @if (loading()) {
+    <p class="muted">Loading dashboard...</p>
+  }
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (summary(); as s) {
+    <div class="grid grid-cols-4">
+      <app-stat-card [value]="s.totalIncidents" label="Total Incidents"></app-stat-card>
+      <app-stat-card [value]="s.criticalIncidents" label="Critical Incidents" accentColor="var(--color-critical)"></app-stat-card>
+      <app-stat-card [value]="s.activeResponders + ' / ' + s.totalResponders" label="Active Responders" accentColor="var(--color-primary)"></app-stat-card>
+      <app-stat-card [value]="s.availableResourceUnits" label="Available Resource Units" accentColor="var(--color-success)"></app-stat-card>
+    </div>
+
+    <div class="grid grid-cols-4" style="margin-top: 16px;">
+      <app-stat-card [value]="s.activeIncidents" label="Active Incidents"></app-stat-card>
+      <app-stat-card [value]="s.shelterCapacityAvailable + ' / ' + s.shelterCapacityTotal" label="Shelter Capacity Available" accentColor="var(--color-success)"></app-stat-card>
+    </div>
+
+    <h2 class="section-title">Recent Incidents</h2>
+    <div class="card table-wrap">
+      @if (s.recentIncidents.length === 0) {
+        <div class="empty-state">No incidents reported yet.</div>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Location</th>
+              <th>Severity</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Reported</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (incident of s.recentIncidents; track incident.id) {
+              <tr [routerLink]="['/incidents', incident.id]">
+                <td>{{ incident.title }}</td>
+                <td>{{ incident.location }}</td>
+                <td>{{ incident.severity }}</td>
+                <td>
+                  @if (incident.priorityTier) {
+                    <app-badge [text]="incident.priorityTier" [colorClass]="priorityTierColor(incident.priorityTier)"></app-badge>
+                  } @else {
+                    <span class="muted">Calculating…</span>
+                  }
+                </td>
+                <td>{{ incident.status }}</td>
+                <td>{{ incident.reportedAt | date: 'short' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+</div>

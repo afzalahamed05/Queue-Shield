@@ -1,0 +1,37 @@
+package com.queueshield.resourceservice.config;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.TopicPartition;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.util.backoff.ExponentialBackOff;
+
+/**
+ * Same retry/DLT policy as every other service. Note that a "no stock available" business
+ * rejection never reaches this error handler at all - {@code ResourceReservationService} treats
+ * that as a normal outcome (publishes ResourceRequestRejected), not a thrown exception. Only
+ * genuine failures (DB unreachable, unexpected bugs) hit retry/DLT here.
+ */
+@Configuration
+public class KafkaConfig {
+
+    @Bean
+    public DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<Object, Object> kafkaTemplate) {
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
+                (record, exception) -> resolveDeadLetterTopic(record));
+
+        ExponentialBackOff backOff = new ExponentialBackOff(500L, 2.0);
+        backOff.setMaxElapsedTime(4_000L);
+
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+        errorHandler.setCommitRecovered(true);
+        return errorHandler;
+    }
+
+    private TopicPartition resolveDeadLetterTopic(ConsumerRecord<?, ?> record) {
+        return new TopicPartition(record.topic() + ".DLT", record.partition());
+    }
+}

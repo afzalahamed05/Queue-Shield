@@ -1,0 +1,196 @@
+name: queueshield
+
+networks:
+  queueshield-net:
+    name: queueshield-net
+
+volumes:
+  queueshield-postgres-data:
+  queueshield-kafka-data:
+
+services:
+  queueshield-postgres:
+    image: postgres:16-alpine
+    container_name: queueshield-postgres
+    environment:
+      POSTGRES_DB: queueshield
+      POSTGRES_USER: queueshield
+      POSTGRES_PASSWORD: queueshield
+    volumes:
+      - queueshield-postgres-data:/var/lib/postgresql/data
+      - ./services/postgres-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5439:5432"
+    networks: [queueshield-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U queueshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  queueshield-redis:
+    image: redis:7-alpine
+    container_name: queueshield-redis
+    ports:
+      - "6390:6379"
+    networks: [queueshield-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka
+    ports:
+      - "9094:9094"
+    networks: [queueshield-net]
+    volumes:
+      - queueshield-kafka-data:/tmp/kraft-combined-logs
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  kafka-init:
+    image: apache/kafka:3.8.0
+    container_name: kafka-init
+    networks: [queueshield-net]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        for t in incident.created incident.updated incident.prioritized
+        resource.requested resource.assigned resource.request-rejected
+        responder.assigned shelter.capacity-changed assignment.completed;
+        do /opt/kafka/bin/kafka-topics.sh --create --if-not-exists
+        --bootstrap-server kafka:9092 --partitions 3 --replication-factor 1
+        --topic "$$t"; done
+    restart: "no"
+
+  incident-service:
+    build:
+      context: ./services
+      dockerfile: incident-service/Dockerfile
+    container_name: incident-service
+    ports: ["8083:8083"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+
+  priority-service:
+    build:
+      context: ./services
+      dockerfile: priority-service/Dockerfile
+    container_name: priority-service
+    ports: ["8084:8084"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      queueshield-redis: { condition: service_healthy }
+
+  resource-service:
+    build:
+      context: ./services
+      dockerfile: resource-service/Dockerfile
+    container_name: resource-service
+    ports: ["8085:8085"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      queueshield-redis: { condition: service_healthy }
+
+  responder-service:
+    build:
+      context: ./services
+      dockerfile: responder-service/Dockerfile
+    container_name: responder-service
+    ports: ["8086:8086"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      queueshield-redis: { condition: service_healthy }
+
+  shelter-service:
+    build:
+      context: ./services
+      dockerfile: shelter-service/Dockerfile
+    container_name: shelter-service
+    ports: ["8087:8087"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      queueshield-redis: { condition: service_healthy }
+
+  assignment-service:
+    build:
+      context: ./services
+      dockerfile: assignment-service/Dockerfile
+    container_name: assignment-service
+    ports: ["8088:8088"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      responder-service: { condition: service_started }
+      resource-service: { condition: service_started }
+
+  notification-service:
+    build:
+      context: ./services
+      dockerfile: notification-service/Dockerfile
+    container_name: notification-service
+    ports: ["8089:8089"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+
+  gateway:
+    build:
+      context: ./services
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    ports: ["8090:8090"]
+    networks: [queueshield-net]
+    depends_on:
+      queueshield-redis: { condition: service_healthy }
+      incident-service: { condition: service_started }
+      priority-service: { condition: service_started }
+      resource-service: { condition: service_started }
+      responder-service: { condition: service_started }
+      shelter-service: { condition: service_started }
+      assignment-service: { condition: service_started }
+      notification-service: { condition: service_started }
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: queueshield-frontend
+    environment:
+      API_BASE_URL: http://localhost:8090/api
+    ports: ["4200:80"]
+    networks: [queueshield-net]
+    depends_on:
+      - gateway

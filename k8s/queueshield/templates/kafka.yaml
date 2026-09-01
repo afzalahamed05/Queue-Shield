@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  labels: {{- include "queueshield.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # avoids a second pod trying to mount the same ReadWriteOnce PVC
+  selector:
+    matchLabels: { app: kafka }
+  template:
+    metadata:
+      labels: { app: kafka }
+    spec:
+      containers:
+        - name: kafka
+          image: {{ .Values.kafka.image }}
+          ports:
+            - containerPort: 9092
+            - containerPort: 9093
+          env:
+            - { name: KAFKA_NODE_ID, value: "1" }
+            - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
+            - { name: KAFKA_LISTENERS, value: "PLAINTEXT://:9092,CONTROLLER://:9093" }
+            - { name: KAFKA_ADVERTISED_LISTENERS, value: "PLAINTEXT://kafka:9092" }
+            - { name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP, value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT" }
+            # localhost, not the "kafka" Service name: this single node is its own controller, and
+            # routing that self-connection through the Service's ClusterIP means going through
+            # kube-proxy's hairpin NAT back to the same pod - unreliable on kind's default CNI and
+            # the actual root cause of the crash loop seen while developing this (broker logs showed
+            # "Connection to node 1 (kafka/<ClusterIP>:9093) could not be established").
+            - { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "1@localhost:9093" }
+            - { name: KAFKA_CONTROLLER_LISTENER_NAMES, value: "CONTROLLER" }
+            - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: "PLAINTEXT" }
+            - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS, value: "0" }
+            - { name: KAFKA_AUTO_CREATE_TOPICS_ENABLE, value: "true" }
+          volumeMounts:
+            - name: data
+              mountPath: /tmp/kraft-combined-logs
+          # A JVM-based exec probe (kafka-broker-api-versions.sh) was tried first but starves the
+          # broker's own JVM of CPU on a constrained dev machine, causing false liveness failures.
+          # A TCP check is the standard lighter-weight alternative for Kafka in Kubernetes. The
+          # generous initialDelaySeconds/failureThreshold below account for KRaft's first-boot
+          # storage format, which is slow under this machine's CPU contention.
+          readinessProbe:
+            tcpSocket: { port: 9092 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: { port: 9092 }
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 8
+          resources: {{- .Values.resources.kafka | toYaml | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: kafka }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka
+  labels: {{- include "queueshield.labels" . | nindent 4 }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  labels: {{- include "queueshield.labels" . | nindent 4 }}
+spec:
+  selector: { app: kafka }
+  ports:
+    - name: broker
+      port: 9092
+      targetPort: 9092
+    - name: controller
+      port: 9093
+      targetPort: 9093

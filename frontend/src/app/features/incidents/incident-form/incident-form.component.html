@@ -1,0 +1,73 @@
+<div class="page">
+  <div class="page-header">
+    <h1>{{ isEditMode() ? 'Edit Incident' : 'Report New Incident' }}</h1>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <form class="card" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-group">
+      <label>Title *</label>
+      <input type="text" formControlName="title" placeholder="e.g. Flooding near the bridge" />
+      @if (form.controls.title.invalid && form.controls.title.touched) {
+        <span class="field-error">Title is required (max 200 characters).</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea formControlName="description" rows="3" placeholder="What's happening, what help is needed..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Location *</label>
+      <input type="text" formControlName="location" placeholder="e.g. Riverside Bridge, Sector 4" />
+      @if (form.controls.location.invalid && form.controls.location.touched) {
+        <span class="field-error">Location is required.</span>
+      }
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Severity *</label>
+        <select formControlName="severity">
+          @for (s of severityOptions; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </div>
+
+      @if (isEditMode()) {
+        <div class="form-group">
+          <label>Status</label>
+          <select formControlName="status">
+            @for (s of statusOptions; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>People Affected *</label>
+        <input type="number" formControlName="peopleAffected" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Vulnerable Population Count</label>
+        <input type="number" formControlName="vulnerablePopulationCount" min="0" />
+        <span class="muted" style="font-size: 0.78rem;">Children, elderly, disabled, or medically dependent people among those affected.</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap: 8px;">
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Saving...' : (isEditMode() ? 'Save Changes' : 'Report Incident') }}
+      </button>
+      <a class="btn" routerLink="/incidents">Cancel</a>
+    </div>
+  </form>
+</div>

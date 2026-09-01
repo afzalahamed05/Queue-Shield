@@ -1,0 +1,95 @@
+# Every hostname below (queueshield-postgres, kafka, queueshield-redis, responder-service, ...)
+# is chosen to exactly match the Service name each Spring Boot app already defaults to in its
+# application.yml (the same trick used for the Docker Compose network) - so no service-specific
+# env vars are needed beyond DB credentials and which database each service owns.
+
+dbSecretName: queueshield-db-credentials  # created outside this chart (by Terraform) - not managed here
+
+image:
+  pullPolicy: Never  # images are loaded directly into kind's containerd, never pulled from a registry
+
+postgres:
+  image: postgres:16-alpine
+  storageSize: 1Gi
+  databases:
+    - incident_db
+    - priority_db
+    - resource_db
+    - responder_db
+    - shelter_db
+    - assignment_db
+    - notification_db
+
+redis:
+  image: redis:7-alpine
+
+kafka:
+  image: apache/kafka:3.8.0
+  topics:
+    - incident.created
+    - incident.updated
+    - incident.prioritized
+    - resource.requested
+    - resource.assigned
+    - resource.request-rejected
+    - responder.assigned
+    - shelter.capacity-changed
+    - assignment.completed
+
+frontend:
+  image: queueshield-frontend:latest
+  nodePort: 30080
+  # The browser runs on the host, not in the cluster, so this must be the host-reachable address -
+  # kind's extraPortMappings (k8s/kind-cluster.yaml) map the gateway's NodePort 30090 to host 9190.
+  apiBaseUrl: http://localhost:9190/api
+
+resources:
+  jvm:
+    requests: { cpu: 150m, memory: 320Mi }
+    limits: { cpu: 750m, memory: 640Mi }
+  infra:
+    requests: { cpu: 150m, memory: 256Mi }
+    limits: { cpu: 750m, memory: 768Mi }
+  kafka:
+    requests: { cpu: 250m, memory: 384Mi }
+    limits: { cpu: 1200m, memory: 1024Mi }
+  light:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+
+# One entry per Spring Boot microservice. `db: ""` means the service owns no database (gateway).
+# `nodePort` is only set for the one service the outside world needs to reach directly.
+services:
+  - name: incident-service
+    image: queueshield-incident-service:latest
+    port: 8083
+    db: incident_db
+  - name: priority-service
+    image: queueshield-priority-service:latest
+    port: 8084
+    db: priority_db
+  - name: resource-service
+    image: queueshield-resource-service:latest
+    port: 8085
+    db: resource_db
+  - name: responder-service
+    image: queueshield-responder-service:latest
+    port: 8086
+    db: responder_db
+  - name: shelter-service
+    image: queueshield-shelter-service:latest
+    port: 8087
+    db: shelter_db
+  - name: assignment-service
+    image: queueshield-assignment-service:latest
+    port: 8088
+    db: assignment_db
+  - name: notification-service
+    image: queueshield-notification-service:latest
+    port: 8089
+    db: notification_db
+  - name: gateway
+    image: queueshield-gateway:latest
+    port: 8090
+    db: ""
+    nodePort: 30090

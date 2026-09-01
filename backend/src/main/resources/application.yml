@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: queueshield-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5439/queueshield}
+    username: ${DB_USERNAME:queueshield}
+    password: ${DB_PASSWORD:queueshield}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:false}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  # Default changed from Spring Boot's usual 8080: on this dev machine that port (and 8081) are
+  # already bound by unrelated local services. Override with SERVER_PORT if 8082 is also taken.
+  port: ${SERVER_PORT:8082}
+
+queueshield:
+  cors:
+    # Angular's default dev port is 4200; this machine already had something else bound to it,
+    # so the frontend here runs on 4201 - both are allowed by default for a smooth local setup.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:4201}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.queueshield: ${LOG_LEVEL:INFO}

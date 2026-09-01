@@ -1,0 +1,58 @@
+---
+# Demonstrates Ansible managing the Windows host itself over WinRM - the "Windows
+# administration" + "remote system administration" resume gaps, without a separate VM.
+# Everything here is read-only or trivially reversible (one small marker file under
+# C:\QueueShieldAnsibleDemo\) - nothing that touches real system configuration.
+#
+# Prerequisite (run scripts/setup-winrm.ps1 yourself first - see that file for why this repo
+# doesn't run it for you): WinRM must be enabled and listening on 5985.
+#
+# Run from ansible/ inside the queueshield-ansible container:
+#   ansible-playbook -i inventory.ini windows-playbook.yml -e ansible_user=<your-windows-username>
+# with $env:WINRM_PASSWORD set in the shell first.
+- name: Manage the Windows host over WinRM
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Verify WinRM connectivity and auth
+      ansible.windows.win_ping:
+
+    - name: Gather Windows facts
+      ansible.windows.setup:
+      register: win_facts
+
+    - name: Report OS version and uptime
+      ansible.builtin.debug:
+        msg: >-
+          {{ win_facts.ansible_facts.ansible_os_name }}
+          (build {{ win_facts.ansible_facts.ansible_os_version }}),
+          up since {{ win_facts.ansible_facts.ansible_lastboot }}
+
+    - name: Query the WinRM service itself
+      ansible.windows.win_service_info:
+        name: WinRM
+      register: winrm_service
+
+    - name: Report WinRM service state
+      ansible.builtin.debug:
+        msg: "WinRM service state: {{ winrm_service.services[0].state }}, start mode: {{ winrm_service.services[0].start_mode }}"
+
+    - name: Check Windows Firewall profile status
+      ansible.windows.win_shell: netsh advfirewall show allprofiles state
+      register: firewall_state
+      changed_when: false
+
+    - name: Report firewall status
+      ansible.builtin.debug:
+        var: firewall_state.stdout_lines
+
+    - name: Ensure a small config-management marker directory exists (proves real write access)
+      ansible.windows.win_file:
+        path: C:\QueueShieldAnsibleDemo
+        state: directory
+
+    - name: Record last managed timestamp
+      ansible.windows.win_copy:
+        content: "Last managed by Ansible: {{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}\n"
+        dest: C:\QueueShieldAnsibleDemo\last-run.txt
